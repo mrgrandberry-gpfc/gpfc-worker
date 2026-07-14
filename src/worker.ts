@@ -121,24 +121,35 @@ OUTPUT: Return only the finished content, ready to publish. No preamble, no note
 }
 
 // ── SCENARIO 1: Ingest & Ground ──────────────────────────────────────────────
-function handleGround(item: ContentItem, brainContent: string, commitSha: string, ctaLink: string) {
-  if (!brainContent || brainContent.trim().length < 50) {
+async function handleGround(item: ContentItem, commitSha: string, ctaLink: string, brainContent?: string, brainUrl?: string): Promise<Response> {
+  // If brainContent not passed directly, fetch from brainUrl
+  let brain = brainContent || "";
+  if ((!brain || brain.trim().length < 50) && brainUrl) {
+    try {
+      const res = await fetch(brainUrl);
+      if (res.ok) brain = await res.text();
+    } catch {
+      brain = "";
+    }
+  }
+
+  if (!brain || brain.trim().length < 50) {
     return json({
       item: { ...item, status: "blocked_brain_unavailable" },
       grounded: false,
       notifyOperator: true,
-      notification: `BRAIN.md unavailable or too short for item: ${item.topic}. Check GitHub raw URL in Scenario 1.`,
+      notification: `BRAIN.md unavailable or too short for item: ${item.topic}. Check brainUrl in Scenario 1.`,
     });
   }
 
-  const prompt = buildGroundingPrompt(item, brainContent, ctaLink || WHOP_URL);
+  const prompt = buildGroundingPrompt(item, brain, ctaLink || WHOP_URL);
 
   return json({
     item: {
       ...item,
       status: "prompt_ready",
       prompt,
-      brain_version: commitSha || "manual",
+      brain_version: commitSha || "main",
     },
     grounded: true,
     notifyOperator: false,
@@ -475,11 +486,12 @@ export default {
     try {
       switch (path) {
         case "/scenario/1/ground":
-          return handleGround(
+          return await handleGround(
             body.item as ContentItem,
-            body.brainContent as string,
             body.commitSha as string,
-            body.ctaLink as string
+            body.ctaLink as string,
+            body.brainContent as string | undefined,
+            body.brainUrl as string | undefined
           );
 
         case "/scenario/2/draft":
