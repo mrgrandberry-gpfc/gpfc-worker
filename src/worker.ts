@@ -458,6 +458,31 @@ function handleBase44Callback(item: ContentItem, callback: { decision: string; n
   return handleApprovalResume(item, callback.decision, callback.notes || "");
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function normalizeItem(raw: Record<string, unknown>): ContentItem {
+  return {
+    id: String(raw.id ?? ""),
+    topic: String(raw.topic ?? ""),
+    content_format: String(raw.content_format ?? "linkedin_post") as ContentFormat,
+    platforms: Array.isArray(raw.platforms) ? raw.platforms as Platform[] : [],
+    is_financial: raw.is_financial === true || raw.is_financial === "true" || raw.is_financial === "1",
+    brain_version: String(raw.brain_version ?? ""),
+    prompt: String(raw.prompt ?? ""),
+    draft_text: String(raw.draft_text ?? ""),
+    media_urls: Array.isArray(raw.media_urls) ? raw.media_urls as string[] : [],
+    compliance_status: String(raw.compliance_status ?? "pending"),
+    compliance_reasons: Array.isArray(raw.compliance_reasons) ? raw.compliance_reasons as string[] : [],
+    approval_status: String(raw.approval_status ?? "pending"),
+    reviewer_notes: String(raw.reviewer_notes ?? ""),
+    publish_status: String(raw.publish_status ?? "unpublished"),
+    source_attribution: String(raw.source_attribution ?? ""),
+    status: String(raw.status ?? "topic_ready"),
+    crm_logged: raw.crm_logged === true || raw.crm_logged === "true" || raw.crm_logged === "1",
+    created_at: String(raw.created_at ?? new Date().toISOString()),
+    updated_at: String(raw.updated_at ?? new Date().toISOString()),
+  };
+}
+
 // ── Router ───────────────────────────────────────────────────────────────────
 export default {
   async fetch(request: Request): Promise<Response> {
@@ -487,7 +512,7 @@ export default {
       switch (path) {
         case "/scenario/1/ground":
           return await handleGround(
-            body.item as ContentItem,
+            normalizeItem(body.item as Record<string, unknown>),
             body.commitSha as string,
             body.ctaLink as string,
             body.brainContent as string | undefined,
@@ -496,49 +521,49 @@ export default {
 
         case "/scenario/2/draft":
           return handleDraft(
-            body.item as ContentItem,
+            normalizeItem(body.item as Record<string, unknown>),
             body.draftText as string,
             body.source as string
           );
 
         case "/scenario/3/compliance":
           return handleCompliance(
-            body.item as ContentItem,
+            normalizeItem(body.item as Record<string, unknown>),
             body.mediaRequired as boolean | undefined
           );
 
         case "/scenario/4/media-task":
-          return handleMediaTask(body.item as ContentItem);
+          return handleMediaTask(normalizeItem(body.item as Record<string, unknown>));
 
         case "/scenario/4/attach-media":
           return handleAttachMedia(
-            body.item as ContentItem,
+            normalizeItem(body.item as Record<string, unknown>),
             body.mediaUrls as string[]
           );
 
         case "/scenario/5/approval-request":
-          return handleApprovalRequest(body.item as ContentItem);
+          return handleApprovalRequest(normalizeItem(body.item as Record<string, unknown>));
 
         case "/scenario/5/resume":
           return handleApprovalResume(
-            body.item as ContentItem,
+            normalizeItem(body.item as Record<string, unknown>),
             body.decision as string,
             body.notes as string
           );
 
         case "/scenario/6/schedule":
           return handleSchedule(
-            body.item as ContentItem,
+            normalizeItem(body.item as Record<string, unknown>),
             body.bufferChannelLimit as number,
             body.validateCta as boolean
           );
 
         case "/scenario/6/confirm":
-          return handleConfirmPublished(body.item as ContentItem);
+          return handleConfirmPublished(normalizeItem(body.item as Record<string, unknown>));
 
         case "/scenario/7/publish-event":
           return handlePublishEvent(
-            body.item as ContentItem,
+            normalizeItem(body.item as Record<string, unknown>),
             body.occurredAt as string
           );
 
@@ -547,7 +572,7 @@ export default {
 
         case "/base44/callback":
           return handleBase44Callback(
-            body.item as ContentItem,
+            normalizeItem(body.item as Record<string, unknown>),
             body.callback as { decision: string; notes?: string }
           );
 
