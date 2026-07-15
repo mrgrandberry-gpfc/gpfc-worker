@@ -1,6 +1,8 @@
 // GPFC Automation Worker — 13 endpoints
 // Grandberry Private Funding & Consulting
 
+import { BRAIN_MD } from "./brain";
+
 const WHOP_URL = "https://whop.com/grandberry-private-funding";
 const PAYHIP_URL = "https://payhip.com/grandberryprivatefundingconsulting";
 const CONTACT_EMAIL = "grandberryprivatefunding@gmail.com";
@@ -121,24 +123,15 @@ OUTPUT: Return only the finished content, ready to publish. No preamble, no note
 }
 
 // ── SCENARIO 1: Ingest & Ground ──────────────────────────────────────────────
-async function handleGround(item: ContentItem, commitSha: string, ctaLink: string, brainContent?: string, brainUrl?: string): Promise<Response> {
-  // If brainContent not passed directly, fetch from brainUrl
-  let brain = brainContent || "";
-  if ((!brain || brain.trim().length < 50) && brainUrl) {
-    try {
-      const res = await fetch(brainUrl);
-      if (res.ok) brain = await res.text();
-    } catch {
-      brain = "";
-    }
-  }
+async function handleGround(item: ContentItem, commitSha: string, ctaLink: string): Promise<Response> {
+  const brain = BRAIN_MD;
 
   if (!brain || brain.trim().length < 50) {
     return json({
       item: { ...item, status: "blocked_brain_unavailable" },
       grounded: false,
       notifyOperator: true,
-      notification: `BRAIN.md unavailable or too short for item: ${item.topic}. Check brainUrl in Scenario 1.`,
+      notification: `BRAIN.md unavailable for item: ${item.topic}.`,
     });
   }
 
@@ -510,26 +503,12 @@ export default {
 
     try {
       switch (path) {
-        case "/scenario/1/ground": {
-          // Debug: echo raw body for troubleshooting
-          const rawItem = body.item as Record<string, unknown>;
-          if (rawItem && !rawItem.topic) {
-            return json({
-              debug: true,
-              received_item: rawItem,
-              received_keys: Object.keys(rawItem),
-              brainUrl: body.brainUrl,
-              commitSha: body.commitSha,
-            });
-          }
+        case "/scenario/1/ground":
           return await handleGround(
-            normalizeItem(rawItem),
+            normalizeItem(body.item as Record<string, unknown>),
             body.commitSha as string,
-            body.ctaLink as string,
-            body.brainContent as string | undefined,
-            body.brainUrl as string | undefined
+            body.ctaLink as string
           );
-        }
 
         case "/scenario/2/draft":
           return handleDraft(
