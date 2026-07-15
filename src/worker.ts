@@ -510,14 +510,26 @@ export default {
 
     try {
       switch (path) {
-        case "/scenario/1/ground":
+        case "/scenario/1/ground": {
+          // Debug: echo raw body for troubleshooting
+          const rawItem = body.item as Record<string, unknown>;
+          if (rawItem && !rawItem.topic) {
+            return json({
+              debug: true,
+              received_item: rawItem,
+              received_keys: Object.keys(rawItem),
+              brainUrl: body.brainUrl,
+              commitSha: body.commitSha,
+            });
+          }
           return await handleGround(
-            normalizeItem(body.item as Record<string, unknown>),
+            normalizeItem(rawItem),
             body.commitSha as string,
             body.ctaLink as string,
             body.brainContent as string | undefined,
             body.brainUrl as string | undefined
           );
+        }
 
         case "/scenario/2/draft":
           return handleDraft(
