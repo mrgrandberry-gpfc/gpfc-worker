@@ -97,7 +97,9 @@ function buildGroundingPrompt(
   brainContent: string,
   ctaLink: string
 ): string {
-  const platformList = item.platforms.join(", ");
+  const platformList = (item.platforms || []).join(", ") || "LinkedIn, Facebook";
+  const format = item.content_format || "linkedin_post";
+  const topic = item.topic || "business funding and financial literacy";
   const disclaimerNote = item.is_financial
     ? `\n\nIMPORTANT: This is financial content. You MUST include this disclaimer at the end:\n${FINANCIAL_DISCLAIMER}`
     : "";
@@ -107,7 +109,7 @@ function buildGroundingPrompt(
 BRAND BRAIN:
 ${brainContent}
 
-TASK: Write a ${item.content_format} about: "${item.topic}"
+TASK: Write a ${format} about: "${topic}"
 TARGET PLATFORMS: ${platformList}
 CTA LINK: ${ctaLink}
 ${disclaimerNote}
@@ -120,6 +122,7 @@ REQUIREMENTS:
 - Do NOT use generic AI language or filler phrases
 
 OUTPUT: Return only the finished content, ready to publish. No preamble, no notes.`;
+}
 }
 
 // ── SCENARIO 1: Ingest & Ground ──────────────────────────────────────────────
